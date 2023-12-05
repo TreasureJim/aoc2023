@@ -220,4 +220,78 @@ humidity-to-location map:
     }
 }
 
-mod part2 {}
+mod part2 {
+    use super::*;
+
+    fn get_lowest_loc(s: &str) -> usize {
+        let paragraphs: Vec<_> = s
+            .split_terminator("\n\n") // Split into paragraphs
+            .map(|paragraph| paragraph.lines().collect::<Vec<_>>().into_boxed_slice()) // Collect into slice
+            .collect();
+
+        // seeds
+        let seeds = paragraphs[0][0].split(": ").collect::<Vec<_>>()[1]
+            .split_whitespace()
+            .map(|x| x.parse::<usize>().unwrap())
+            .collect::<Vec<_>>();
+
+        let seeds: Vec<usize> = seeds.chunks(2).map(|window| window[0]..window[0]+window[1]).flat_map(|range| range.collect::<Vec<_>>()).collect();
+
+        let map = Mapping::parse_input(
+            &paragraphs[1..]
+                .iter()
+                .map(|boxed_slice| boxed_slice.as_ref())
+                .collect::<Vec<_>>(),
+        );
+        let locs = seeds.iter().map(|x| map.get_loc(*x)).collect::<Vec<_>>();
+        locs.into_iter().min().unwrap()
+    }
+
+    mod tests {
+        use super::get_lowest_loc;
+
+        #[test]
+        fn test_whole_str() {
+            let test_str = "seeds: 79 14 55 13
+
+seed-to-soil map:
+50 98 2
+52 50 48
+
+soil-to-fertilizer map:
+0 15 37
+37 52 2
+39 0 15
+
+fertilizer-to-water map:
+49 53 8
+0 11 42
+42 0 7
+57 7 4
+
+water-to-light map:
+88 18 7
+18 25 70
+
+light-to-temperature map:
+45 77 23
+81 45 19
+68 64 13
+
+temperature-to-humidity map:
+0 69 1
+1 0 69
+
+humidity-to-location map:
+60 56 37
+56 93 4";
+            assert_eq!(get_lowest_loc(test_str), 46);
+        }
+
+        #[test]
+        fn test_final() {
+            let test_file = std::fs::read_to_string("day5.txt").unwrap();
+            dbg!(get_lowest_loc(&test_file));
+        }
+    }
+}
