@@ -108,7 +108,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
         #[test]
         fn test_final() {
-            let file = std::fs::read_to_string("day2-p1.txt").unwrap();
+            let file = std::fs::read_to_string("day2.txt").unwrap();
             dbg!(find_possible(&file, 12, 13, 14));
         }
     }
@@ -144,7 +144,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
         #[test]
         fn final_test() {
-            let file = std::fs::read_to_string("day2-p1.txt").unwrap();
+            let file = std::fs::read_to_string("day2.txt").unwrap();
             dbg!(sum_powers(&file));
         }
     }
