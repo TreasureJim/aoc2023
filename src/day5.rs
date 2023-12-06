@@ -18,8 +18,12 @@ fn remap(range: &Range<usize>, layer: &[(Range<usize>, isize)]) -> Vec<Range<usi
 
     for (layer_range, offset) in layer {
         // if layer_range contains range
-        if range_contains_range(&layer_range, &range) {
-            answer.push((range.clone(), *offset));
+        // if not (end < lo or src > hi):
+        if !(layer_range.end < range.start || layer_range.start > range.end) {
+            answer.push((
+                layer_range.start.max(range.start)..layer_range.end.min(range.end),
+                *offset,
+            ));
         }
     }
 
@@ -61,7 +65,8 @@ fn remap(range: &Range<usize>, layer: &[(Range<usize>, isize)]) -> Vec<Range<usi
 /// Accepts array of lines.
 fn parse_section(lines: &str) -> Vec<(Range<usize>, isize)> {
     lines
-        .lines().skip(1)
+        .lines()
+        .skip(1)
         .map(|line| {
             let nums = line
                 .split_whitespace()
@@ -86,10 +91,10 @@ fn get_lowest_loc(seeds: Vec<Range<usize>>, maps: Vec<Vec<(Range<usize>, isize)>
             for range in cur_ranges.iter() {
                 new_ranges.append(&mut remap(range, map));
             }
-        }
 
-        cur_ranges = new_ranges;
-        new_ranges = vec![];
+            cur_ranges = new_ranges;
+            new_ranges = vec![];
+        }
 
         lowest = lowest.min(cur_ranges.iter().map(|x| x.start).min().unwrap())
     }
@@ -172,7 +177,29 @@ humidity-to-location map:
 mod part2 {
     use super::*;
 
+    fn part2_loc(s: &str) -> usize {
+        let paragraphs: Vec<_> = s.split_terminator("\n\n").collect();
+
+        // seeds
+        let seeds = paragraphs[0].split(": ").collect::<Vec<_>>()[1]
+            .split_whitespace()
+            .map(|x| x.parse::<usize>().unwrap())
+            .collect::<Vec<_>>()
+            .chunks(2)
+            .map(|x| x[0]..x[0] + x[1])
+            .collect::<Vec<_>>();
+
+        let maps = paragraphs[1..]
+            .iter()
+            .map(|para| parse_section(para))
+            .collect();
+
+        get_lowest_loc(seeds, maps)
+    }
+
     mod tests {
+        use crate::day5::part2::{self, part2_loc};
+
         use super::get_lowest_loc;
 
         #[test]
@@ -210,13 +237,13 @@ temperature-to-humidity map:
 humidity-to-location map:
 60 56 37
 56 93 4";
-            // assert_eq!(get_lowest_loc(test_str), 46);
+            assert_eq!(part2_loc(test_str), 46);
         }
 
         #[test]
         fn test_final() {
             let test_file = std::fs::read_to_string("day5.txt").unwrap();
-            // dbg!(get_lowest_loc(&test_file));
+            dbg!(part2_loc(&test_file));
         }
     }
 }
