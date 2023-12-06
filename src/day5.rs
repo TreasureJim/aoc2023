@@ -4,7 +4,6 @@ use std::{cmp::Ordering, ops::Range};
 
 /*
 *
-* NOT WORKING
 * Solution inspired from: https://github.com/womogenes/AoC-2023-Solutions/blob/main/day_05/day_05_p2.py#L13
 *
 */
@@ -13,13 +12,13 @@ fn range_contains_range<T: PartialOrd>(this: &Range<T>, other: &Range<T>) -> boo
     this.start <= other.start && this.end >= other.end
 }
 
-fn remap(range: &Range<usize>, layer: &[(Range<usize>, isize)]) -> Vec<Range<usize>> {
+fn remap(range: &Range<isize>, layer: &[(Range<isize>, isize)]) -> Vec<Range<isize>> {
     let mut answer = Vec::new();
 
     for (layer_range, offset) in layer {
         // if layer_range contains range
         // if not (end < lo or src > hi):
-        if !(layer_range.end < range.start || layer_range.start > range.end) {
+        if !(layer_range.end <= range.start || layer_range.start >= range.end) {
             answer.push((
                 layer_range.start.max(range.start)..layer_range.end.min(range.end),
                 *offset,
@@ -29,7 +28,7 @@ fn remap(range: &Range<usize>, layer: &[(Range<usize>, isize)]) -> Vec<Range<usi
 
     // check if there are any spacing
     {
-        let mut temp: Vec<(Range<usize>, isize)> = Vec::new();
+        let mut temp: Vec<(Range<isize>, isize)> = Vec::new();
         for window in answer.windows(2) {
             let (ans_range, _) = &window[0];
             let (ans_range2, _) = &window[1];
@@ -45,11 +44,12 @@ fn remap(range: &Range<usize>, layer: &[(Range<usize>, isize)]) -> Vec<Range<usi
         return vec![range.clone()];
     }
 
-    let first_start = answer.first().unwrap().0.start;
+    let first_start = answer.iter().map(|x| x.0.start).min().unwrap();
     if first_start > range.start {
         answer.push((range.start..first_start, 0))
     }
-    let last_finish = answer.last().unwrap().0.end;
+
+    let last_finish = answer.iter().map(|x| x.0.end).max().unwrap();
     if last_finish < range.end {
         answer.push((last_finish..range.end, 0));
     }
@@ -57,20 +57,20 @@ fn remap(range: &Range<usize>, layer: &[(Range<usize>, isize)]) -> Vec<Range<usi
     answer
         .iter()
         .map(|(range, offset)| {
-            (range.start as isize + offset) as usize..(range.end as isize + offset) as usize
+            (range.start as isize + offset) as isize..(range.end as isize + offset) as isize
         })
         .collect()
 }
 
 /// Accepts array of lines.
-fn parse_section(lines: &str) -> Vec<(Range<usize>, isize)> {
+fn parse_section(lines: &str) -> Vec<(Range<isize>, isize)> {
     lines
         .lines()
         .skip(1)
         .map(|line| {
             let nums = line
                 .split_whitespace()
-                .map(|x| x.parse::<usize>().unwrap())
+                .map(|x| x.parse::<isize>().unwrap())
                 .collect::<Vec<_>>();
             (
                 nums[1]..nums[1] + nums[2],
@@ -80,10 +80,11 @@ fn parse_section(lines: &str) -> Vec<(Range<usize>, isize)> {
         .collect::<Vec<_>>()
 }
 
-fn get_lowest_loc(seeds: Vec<Range<usize>>, maps: Vec<Vec<(Range<usize>, isize)>>) -> usize {
-    let mut lowest = usize::MAX;
+fn get_lowest_loc(seeds: Vec<Range<isize>>, maps: Vec<Vec<(Range<isize>, isize)>>) -> isize {
+    let mut loc_starts = Vec::new();
 
     for seed in seeds.into_iter() {
+        eprintln!("======= new seed ==============");
         let mut cur_ranges = vec![seed];
         let mut new_ranges = Vec::new();
 
@@ -92,27 +93,29 @@ fn get_lowest_loc(seeds: Vec<Range<usize>>, maps: Vec<Vec<(Range<usize>, isize)>
                 new_ranges.append(&mut remap(range, map));
             }
 
+            dbg!(&cur_ranges);
             cur_ranges = new_ranges;
             new_ranges = vec![];
         }
 
-        lowest = lowest.min(cur_ranges.iter().map(|x| x.start).min().unwrap())
+        dbg!(&cur_ranges);
+        loc_starts.append(&mut cur_ranges.iter().map(|x| x.start).collect());
     }
 
-    lowest
+    *loc_starts.iter().min().unwrap()
 }
 
 mod part1 {
     use super::{get_lowest_loc, parse_section};
 
-    fn part1_loc(s: &str) -> usize {
+    fn part1_loc(s: &str) -> isize {
         let paragraphs: Vec<_> = s.split_terminator("\n\n").collect();
 
         // seeds
         let seeds = paragraphs[0].split(": ").collect::<Vec<_>>()[1]
             .split_whitespace()
             .map(|x| {
-                let x = x.parse::<usize>().unwrap();
+                let x = x.parse::<isize>().unwrap();
                 x..x + 1
             })
             .collect::<Vec<_>>();
@@ -130,7 +133,7 @@ mod part1 {
 
         #[test]
         fn test_whole_str() {
-            let test_str = "seeds: 79 14 55 13
+            let test_str = "seeds: 14 79 55 13
 
 seed-to-soil map:
 50 98 2
@@ -177,13 +180,13 @@ humidity-to-location map:
 mod part2 {
     use super::*;
 
-    fn part2_loc(s: &str) -> usize {
+    fn part2_loc(s: &str) -> isize {
         let paragraphs: Vec<_> = s.split_terminator("\n\n").collect();
 
         // seeds
         let seeds = paragraphs[0].split(": ").collect::<Vec<_>>()[1]
             .split_whitespace()
-            .map(|x| x.parse::<usize>().unwrap())
+            .map(|x| x.parse::<isize>().unwrap())
             .collect::<Vec<_>>()
             .chunks(2)
             .map(|x| x[0]..x[0] + x[1])
